@@ -35,7 +35,7 @@ ptree(char *path)
                 // build path for new entry
                 *(ep+epSize)=0;
                 snprintf(ep, sizeof(ep), "%s/%s", path, entryp->d_name);
-                while (p=strchr(ep,'/')) *p='\\'; // replace all slash to backslash
+                while ((p=strchr(ep,'/'))) *p='\\'; // replace all slash to backslash
 
                 // removes ".\" if any
                 p=( (*ep=='.' && *(ep+1)=='\\') ? ep+2 : ep);
@@ -82,7 +82,7 @@ static void
 removePathExcludedChars(char *path)
 {
   char *p;
-  while (p=strchr(path,'/')) *p='\\';  // replace all slash to backslash
+  while ((p=strchr(path,'/'))) *p='\\';  // replace all slash to backslash
 
   while (strlen(path) && *( path+strlen(path)-1 )=='\\')
                          *( path+strlen(path)-1 )=0; // remove backslashes at the end
@@ -109,7 +109,6 @@ main(int argc, char * argv[])
 
   char *srce=argv[1];
   char *dest=argv[2];
-  char *p;
 
   removePathExcludedChars(srce);
   removePathExcludedChars(dest);
@@ -120,7 +119,7 @@ main(int argc, char * argv[])
 
   snprintf(command, 7680, "MOVE \"%s\" \"%s\" >NUL 2>NUL", srce, dest);
   if ((dirp = opendir(dest)) == NULL)
-     if (ret=system(command) != 0 ) // just rename src if dest folder not exist
+     if ((ret=system(command) != 0 )) // just rename src if dest folder not exist
         { printf("Error while renaming SRCDIR\n"); return ret;}
      else return 0;                 // rename successful, exit
   else closedir(dirp); // folder already exist, close it
@@ -174,12 +173,12 @@ main(int argc, char * argv[])
     #ifdef DEBUG
       printf("%s\n",command);
     #endif
-    if (ret=system(command) != 0 ) {printf("Error while moving file %s\n",files[i]); return ret;}
+    if ((ret=system(command)!= 0)) {printf("Error while moving file %s\n",files[i]); return ret;}
    }
 
    // still here, so everything is good, remove source dir
    snprintf(command, 7680, "RD /S /Q \"%s\" >NUL 2>NUL", srce);
-   if (ret=system(command) != 0 ) {printf("Error while removing dir %s\n",srce); return ret;}
+   if ((ret=system(command) != 0)) {printf("Error while removing dir %s\n",srce); return ret;}
 
   return 0;
 }
