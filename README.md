@@ -9,3 +9,5 @@ only present in the target should be left untouched.
 This tool should provide that functionality.
 
     MoveDirContent.exe SRCDIR DSTDIR
+
+[binary download](https://github.com/mgrinzPlayer/MoveDirContent/raw/master/MoveDirContent.exe)
