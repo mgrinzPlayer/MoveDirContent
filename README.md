@@ -8,4 +8,4 @@ only present in the target should be left untouched.
 
 This tool should provide that functionality.
 
-MoveDirContent.exe SRCDIR DSTDIR
+    MoveDirContent.exe SRCDIR DSTDIR
