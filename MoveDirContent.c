@@ -164,7 +164,7 @@ main(int argc, char * argv[])
 
   if ((dirp = opendir(dest)) == NULL)
      if (ret=system(command) != 0 ) // just rename src if dest folder not exist
-        { printf("Error while moving file\n"); return ret;}
+        { printf("Error while renaming SRCDIR\n"); return ret;}
      else return 0;                 // rename successful, exit
   else closedir(dirp); // folder already exist, close it
 
