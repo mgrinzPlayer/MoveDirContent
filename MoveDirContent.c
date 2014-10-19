@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-int foldersAllocated=8;
-int filesAllocated=8;
+int foldersAllocated=4096;
+int filesAllocated=16384;
 int currentNumberFolders=0;
 int currentNumberFiles=0;
 char **folders;
@@ -24,7 +24,6 @@ ptree(char *path)
         DIR *dirp;
         char *p;
 
-        if (path==NULL) path=".";
         if ((dirp = opendir(path)) == NULL) {printf("Can not open directory %s\n",path); _exit(1);}
 
         epSize=strlen(path);
@@ -38,16 +37,15 @@ ptree(char *path)
                 snprintf(ep, sizeof(ep), "%s/%s", path, entryp->d_name);
                 while (p=strchr(ep,'/')) *p='\\'; // replace all slash to backslash
 
-                // for print (removes "./" if any)
+                // removes ".\" if any
                 p=( (*ep=='.' && *(ep+1)=='\\') ? ep+2 : ep);
 
                 if (stat(ep, &st) == -1) {printf("Can not stat %s\n",ep); _exit(1);}
                 if (S_ISREG(st.st_mode)) {
 
-
                   if ((++currentNumberFiles)>filesAllocated)
                      {
-                       filesAllocated+=8;
+                       filesAllocated+=16384;
                        files=(char**)realloc(files,filesAllocated*sizeof(char*));
 
                      }
@@ -62,7 +60,7 @@ ptree(char *path)
 
                   if ((++currentNumberFolders)>foldersAllocated)
                      {
-                       foldersAllocated+=8;
+                       foldersAllocated+=4096;
                        folders=(char**)realloc(folders,foldersAllocated*sizeof(char*));
 
                      }
@@ -97,20 +95,15 @@ removePathExcludedChars(char *path)
 }
 
 
-
-
-
-
 int
 main(int argc, char * argv[])
 {
 #ifndef _WIN32
-  printf("Only for Windows !\n"); return 1;
+  printf("For now, only for Windows.\n"); return 1;
 #endif
 
   if (argc!=3) { printf("Too few parameters...\n%s SRCDIR DSTDIR\n",argv[0]); return 1;}
 
-  // gather files and folders
   folders=malloc(foldersAllocated*sizeof(char*));
   files=malloc(filesAllocated*sizeof(char*));
 
@@ -121,7 +114,20 @@ main(int argc, char * argv[])
   removePathExcludedChars(srce);
   removePathExcludedChars(dest);
 
-  ptree(srce); // gather
+  DIR *dirp;
+  char command[7680];
+  int ret;
+
+  snprintf(command, 7680, "MOVE \"%s\" \"%s\" >NUL 2>NUL", srce, dest);
+  if ((dirp = opendir(dest)) == NULL)
+     if (ret=system(command) != 0 ) // just rename src if dest folder not exist
+        { printf("Error while renaming SRCDIR\n"); return ret;}
+     else return 0;                 // rename successful, exit
+  else closedir(dirp); // folder already exist, close it
+
+
+
+  ptree(srce); // gather files and folders
 
   //remove duplicates and those already taken into account ( if there is "a\b\c\" we can skip "a\b\" )
   int i=0;
@@ -140,34 +146,21 @@ main(int argc, char * argv[])
   for (i=0;i<currentNumberFolders;i++)
      if (folders[i]!=NULL) folders[count++]=folders[i];
 
-
   // remove main folder from path
-  for (i=0;i<count;i++) folders[i]=folders[i]+strlen(srce)+1;
+  int offset=strlen(srce)+1;
+  for (i=0;i<count;i++) folders[i]=folders[i]+offset;
 
-  //print files
   #ifdef DEBUG
+  //print files
   for (i=0;i<currentNumberFiles;i++)
     printf("%s\n",files[i]);
   #endif
 
-  //print folders
   #ifdef DEBUG
+  //print folders
   for (i=0;i<count;i++)
     printf("%s\n",folders[i]);
   #endif
-
-  DIR *dirp;
-  char command[7680];
-  int ret;
-
-  snprintf(command, 7680, "MOVE \"%s\" \"%s\" >NUL 2>NUL", srce, dest);
-
-  if ((dirp = opendir(dest)) == NULL)
-     if (ret=system(command) != 0 ) // just rename src if dest folder not exist
-        { printf("Error while renaming SRCDIR\n"); return ret;}
-     else return 0;                 // rename successful, exit
-  else closedir(dirp); // folder already exist, close it
-
 
   // create subfolders (if they already exists, nothing bad happens)
   for (i=0;i<count;i++) {
@@ -177,11 +170,11 @@ main(int argc, char * argv[])
 
   // move files
   for (i=0;i<currentNumberFiles;i++) {
-    snprintf(command, 7680, "MOVE /Y \"%s\" \"%s\\%s\" >NUL 2>NUL", files[i], dest, files[i]+strlen(srce)+1);
+    snprintf(command, 7680, "MOVE /Y \"%s\" \"%s\\%s\" >NUL 2>NUL", files[i], dest, files[i]+offset);
     #ifdef DEBUG
       printf("%s\n",command);
     #endif
-    if (ret=system(command) != 0 ) {printf("Error while moving file\n"); return ret;}
+    if (ret=system(command) != 0 ) {printf("Error while moving file %s\n",files[i]); return ret;}
    }
 
    // still here, so everything is good, remove source dir
